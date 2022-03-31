@@ -1,50 +1,21 @@
 {
+    "compileOnSave": false,
     "compilerOptions": {
-        "incremental": true,
-        "composite": true,
-
-        "target": "ES2022",
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
-        "useDefineForClassFields": true,
-
-        "module": "CommonJS",
         "rootDir": "./src",
-        "moduleResolution": "Node",
-
-        "declaration": true,
-        "declarationMap": true,
         "sourceMap": true,
+        "declaration": false,
+        "moduleResolution": "node",
         "outDir": "./dist",
-        "removeComments": true,
-        "noEmit": false,
         "sourceRoot": "./src",
-        "newLine": "lf",
-        "stripInternal": true,
-
+        "baseUrl": ".",
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
         "allowSyntheticDefaultImports": true,
+        "target": "es2015",
+        "module": "CommonJS",
+        "skipLibCheck": true,
         "esModuleInterop": true,
-        "forceConsistentCasingInFileNames": true,
-
-        "strict": true,
-        "noImplicitAny": true,
-        "strictNullChecks": true,
-        "strictFunctionTypes": true,
-        "strictBindCallApply": true,
-        "strictPropertyInitialization": true,
-        "noImplicitThis": true,
-        "useUnknownInCatchVariables": true,
-        "alwaysStrict": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "exactOptionalPropertyTypes": true,
-        "noImplicitReturns": true,
-        "noFallthroughCasesInSwitch": true,
-        "noUncheckedIndexedAccess": true,
-        "noImplicitOverride": true,
-        "noPropertyAccessFromIndexSignature": true,
-        "allowUnusedLabels": false,
-        "allowUnreachableCode": false,
-        "skipLibCheck": true
-    }
+        "skipDefaultLibCheck": true
+    },
+    "exclude": ["node_modules", "tmp"]
 }
