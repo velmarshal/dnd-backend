@@ -1,63 +1,127 @@
 import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
-import Player from './PlayerMenu';
-import Character from './CharacterMenu';
+import Player from './player';
+import Character from './character';
+
 //Player login/start
-//const character = require('./CharacterMenu.ts');
+let player;
 const inquirer = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
+let loadedCharacterIndex : number;
 
-//test
-
-let LoadedPlayerID;
-// Commander variables
-const com_string_PlayerLogIn = "INPUT PLAYER ID TO BEGIN: ";
-let com_bool_PlayerLoadedState = false;
-let com_bool_PlayerLoadedID : string;
-const com_string_PlayerCharMenu = "AVAILABLE COMMANDS: NEW, LOAD (CHAR ID), DELETE (CHAR ID):";
-let com_bool_CharacterLoadedState = false;
-const com_string_CharacterMenu = "AVAILABLE COMMANDS: ROLLALL, REROLL (STAT), ADDITEM (ITEM), REMOVEITEM (ITEM)";
-//
 inquirer.on("close", function() {
     process.exit(0);
   });
-//Start
 
-function commanderStart() : void {
-    inquirer.question(`${com_string_PlayerLogIn}`, playerInput => {
-      Player.loadPlayer(playerInputCleanUp(playerInput));
-      playerMenu();
-    });
+
+function exit() : void {
+    inquirer.close();
+  };
+
+  //console commands
+  inquirer.question('player id: ', (input) => {
+    
+    player = new Player(input);
+    playerMenu();
+  })
+
+function playerMenu () : void {
+  inquirer.question(`${player.id}Available commands: NEW, LOAD(ID), DELETE(ID), LIST, SAVE: `, (input : string) => {
+    let playerInput = input.toLowerCase().split(" ");
+    switch(playerInput[0]){
+      case "new":
+        if (playerInput.length >1){
+          player.addCharacter(playerInput[1]);
+        } else {
+          console.log("CHARACTER NAME REQUIRED");
+        }
+
+      break;
+      //
+      case "load":
+        if (playerInput.length >1){
+          loadedCharacterIndex = player.loadCharacter(playerInput[1]);
+          characterMenu(loadedCharacterIndex);
+        } else {
+          console.log("CHARACTER NAME REQUIRED");
+        }
+      break;
+      //
+      case "delete":
+        if (playerInput.length >1){
+        player.deleteCharacter(playerInput[1]);
+      } else {
+        console.log("CHARACTER NAME REQUIRED");
+      }
+      break;
+      //
+      case "list":
+        console.log(player.getCharacters());
+      break;
+      //
+      case "save":
+        player.save();
+        console.log(`Player ${player.id} has been saved`);
+        playerMenu();
+      break;
+      //
+      case "exit":
+        exit();
+      break;
+      //
+      default:
+        console.log("INVALID COMMAND");
+      break;
+    } 
+    playerMenu();
+
+
+  })
 };
-commanderStart();
 
-function playerMenu() : void {
-  inquirer.question(`${com_string_PlayerCharMenu}`, playerInput => {
-    let Input = playerInput.split(" ");
-    if (`${playerInputCleanUp(Input [0])}` == 'new'){
-      let test = Input.slice(1).join(" ");
-      //console.log(`sending name ${test}`);
-      console.log(Player.listCharacters());
-      let characterdata = Character.createCharacter(test);
-      //Player.addCharacter(characterdata);
-      console.log(characterdata);
-      console.log(Player.listCharacters());
-    } else {
-      console.log("invalid command try again");
-      playerMenu();
+function characterMenu (indexOfLoadedCharacter){
+  inquirer.question('Available commands: REROLL, ADDITEM (NAME STAT QT), REMOVEITEM (NAME), LIST, EXIT: ', (input : string) => {
+  console.log(player.characters[indexOfLoadedCharacter]);
+  let playerInput = input.toLowerCase().split(" ");
+    switch(playerInput[0]){
+      case "reroll":
+        console.log(player.characters[indexOfLoadedCharacter]);
+        player.characters[indexOfLoadedCharacter].rerollStats();
+      break;
+      //
+      case "additem":
+      player.characters[indexOfLoadedCharacter].addItem(playerInput[1],playerInput[2],playerInput[3])
+      break;
+      //
+      case "removeitem":
+        if (playerInput.length >1){
+          player.characters[indexOfLoadedCharacter].deleteItem(playerInput[1]);
+          
+        } else {
+          console.log("ITEM NAME REQUIRED");
+        }
+      break;
+      //
+      case "list":
+        console.log(player.characters[indexOfLoadedCharacter].listItems());
+      break;
+      //
+      case "exit":
+        playerMenu();
+      break;
+      default:
+        console.log("INVALID COMMAND");
+      break;
     }
-  });
-
+    characterMenu(loadedCharacterIndex);
+  })
 };
 
 
 
-function playerInputCleanUp(Input) {
-  //clean input of special characters
-  Input.toLowerCase();
-  return Input;
-};
+
+
 
