@@ -192,13 +192,14 @@ async function listCharacters(playerID){
 async function loadObject(collection, name){
 
   const result = await client.db(databaseName).collection(collection).findOne({"name" : name});
+  console.log(result);
   return result;
 
 };
 async function saveObject(collection, object : Character){
-
-  await client.db(databaseName).collection(collection).findOneAndReplace({"name" : object.name},{object});
-
+  console.log(object);
+  //await client.db(databaseName).collection(collection).findOneAndReplace({"name" : object.name} , {object} , {upsert:true});
+  const result = await client.db(databaseName).collection(collection).replaceOne({"name" : object.name}, object);
 };
 
 
