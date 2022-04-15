@@ -14,11 +14,11 @@
 // create character
 // save character
 // load character 
-import { copyFileSync } from 'fs';
+//import { copyFileSync } from 'fs';
 import Item from './item';
-export default class Character {
-
+export default class Character { 
     public name : string;
+    public ownerID : string;
     private class : string;
     private strength : number;
     private dexterity : number;
@@ -29,9 +29,9 @@ export default class Character {
     private items: Item[] = [];
 
     // Creates new character
-    constructor (nameOrCharacter) {
-        if (typeof nameOrCharacter === 'string') {
-            this.name = nameOrCharacter;
+    constructor (nameCharacter, loadedPlayerID) {
+            this.name = nameCharacter;
+            this.ownerID = loadedPlayerID;
             this.class = "Fighter";
             this.strength = this.rollStat();
             this.dexterity = this.rollStat();
@@ -39,11 +39,6 @@ export default class Character {
             this.intelligence = this.rollStat();
             this.wisdom = this.rollStat();
             this.charisma = this.rollStat();
-        } else {
-            for (const field of Object.keys(nameOrCharacter)) {
-                this[field] = nameOrCharacter[field];
-            }
-        }
     };
 
     private rollStat () {
@@ -93,7 +88,7 @@ export default class Character {
         }
         console.log(this);
     };
-    public addItem(name: string, stat?: string, quantity?: number): Character {
+    public addItem(name: string, stat?: string, quantity?: number) {
         if (quantity && quantity !=0){
             console.log(`Creating calling class item to create item with ${stat} of ${quantity}`)
             this.items.push(new Item(name, stat, Math.abs(quantity)));
@@ -108,7 +103,7 @@ export default class Character {
         this.intelligence += element.intelligence;
         this.wisdom += element.wisdom;
         this.charisma += element.charisma;
-        return;
+        return this.items[this.items.length-1];
     };
     public deleteItem(inputName){
         let itemToDelIndex = this.items.map(x => x.name).indexOf(inputName)
@@ -121,14 +116,30 @@ export default class Character {
             this.wisdom -= element.wisdom;
             this.charisma -= element.charisma;
             this.items.splice(itemToDelIndex, 1);
-            console.log(`Character's item ${inputName} has been deleted`);
+            console.log(`${this.name}'s item ${inputName} has been deleted`);
         } else {
-            console.log(`Character's item under name ${inputName} has not been found`);
+            console.log(`${this.name}'s item under name ${inputName} has not been found`);
         }
 
         
     }
     public listItems() {
-        console.log(this.items);
+        if (this.items.length === 0){
+            console.log("CHARACTER HAS NO ITEMS, USE ADDITEM TO ADD AN ITEM.");
+        } else{
+            console.log(this.items);
+        }
+        
+    }
+    public loadCharacterFromJSON(char){
+        this.name = char.name;
+        this.ownerID = char.ownerID;
+        this.strength = char.strength;
+        this.dexterity = char.dexterity;
+        this.constitution = char.constitution;
+        this.intelligence = char.intelligence;
+        this.wisdom = char.wisdom;
+        this.charisma = char.charisma;
+        this.items = char.items;
     }
 };
