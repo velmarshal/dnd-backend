@@ -3,12 +3,13 @@
 import readline from 'readline';
 import Player from './player';
 import Character from './character';
+import Item from './item';
 //mongo
 const { MongoClient } = require('mongodb');
 const client = new MongoClient("mongodb+srv://Velmarshal:pepsi@cluster0.xjn0f.mongodb.net/myFirstDatabase?retryWrites=true&w=majority");
 const charactersCollection = "charactersTest";
 const playersCollection = "playersTest";
-const itemssCollection = "itemsTest";
+const itemsCollection = "itemsTest";
 const databaseName = "velmarshal";
 client.connect();
 //createObject (client, playersCollection, "Prcko")
@@ -121,21 +122,47 @@ function playerMenu () : void {
 };
 
 function characterMenu (objectLoadedCharacter){
-  inquirer.question('Available commands: REROLL, ADDITEM (NAME STAT QT), REMOVEITEM (NAME), LIST, EXIT: ', (input : string) => {
+  inquirer.question('Available commands: REROLL, ADDITEM (NAME STAT QT), REMOVEITEM (NAME), LIST, EXIT: ', async (input : string) => {
   let playerInput = input.toLowerCase().split(" ");
     switch(playerInput[0]){
-      case "reroll":
-        loadedCharacter.rerollStats();
+      case "reroll":{
+        if(loadedCharacter.itemIDs.length > 0){
+          let itemStatMods : number[] = [0, 0, 0, 0, 0, 0];
+          let loadedItem : Item;
+          for (let i = 0; i < loadedCharacter.itemIDs.length; i++){
+            loadedItem = await loadObject(itemsCollection, loadedCharacter.itemIDs[i]);
+            itemStatMods[0] += loadedItem.strength;
+            itemStatMods[1] += loadedItem.dexterity;
+            itemStatMods[2] += loadedItem.constitution;
+            itemStatMods[3] += loadedItem.intelligence;
+            itemStatMods[4] += loadedItem.wisdom;
+            itemStatMods[5] += loadedItem.charisma;
+          }
+          loadedCharacter.rerollStats(itemStatMods[0],itemStatMods[1],itemStatMods[2],itemStatMods[3],itemStatMods[4],itemStatMods[5]);
+        } else{
+          loadedCharacter.rerollStats(0 , 0 , 0 , 0 , 0 , 0);
+        }
+        
+      }
       break;
       //
       case "additem":
-      //let newItem = loadedCharacter.addItem(playerInput[1],playerInput[2],playerInput[3]);
-      //createObject(itemssCollection, newItem);
+        let doesItemExist : boolean = await checkObject(itemsCollection, playerInput[1]);
+        let newItem : Item;
+        if (doesItemExist === true){
+          let itemToLoad : Item = await loadObject(itemsCollection, playerInput[1]);
+          newItem = loadedCharacter.addItem(true, playerInput[1],playerInput[2],playerInput[3], itemToLoad);
+        } else {
+          newItem = loadedCharacter.addItem(false, playerInput[1],playerInput[2],playerInput[3]);
+          createObject(itemsCollection, newItem);
+        }
+        
       break;
       //
       case "removeitem":
         if (playerInput.length >1){
-          loadedCharacter.deleteItem(playerInput[1]);
+          let itemToDeleteObject = await loadObject(itemsCollection, playerInput[1]);
+          loadedCharacter.deleteItem(itemToDeleteObject);
           
         } else {
           console.log("ITEM NAME REQUIRED");
@@ -198,7 +225,6 @@ async function loadObject(collection, name){
 };
 async function saveObject(collection, object : Character){
   console.log(object);
-  //await client.db(databaseName).collection(collection).findOneAndReplace({"name" : object.name} , {object} , {upsert:true});
   const result = await client.db(databaseName).collection(collection).replaceOne({"name" : object.name}, object);
 };
 

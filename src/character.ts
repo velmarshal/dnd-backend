@@ -26,7 +26,8 @@ export default class Character {
     private intelligence : number;
     private wisdom : number;
     private charisma : number;
-    private items: Item[] = [];
+    //private items: Item[] = [];
+    public itemIDs: string[] = [];
 
     // Creates new character
     constructor (nameCharacter, loadedPlayerID) {
@@ -68,66 +69,68 @@ export default class Character {
                 //console.log(`Final stat ${totalRoll}`);
                 return totalRoll;
         };
-    public rerollStats(){
+    public rerollStats(itmStr : number , itmDex : number , itmCon : number , itmInt : number , itmWis : number , itmCha : number ){
         this.strength = this.rollStat();
         this.dexterity = this.rollStat();
         this.constitution = this.rollStat();
         this.intelligence = this.rollStat();
         this.wisdom = this.rollStat();
         this.charisma = this.rollStat();
-        if (this.items.length){
-            this.items.forEach(element =>{
-                this.strength += element.strength;
-                this.dexterity += element.dexterity;
-                this.constitution += element.constitution;
-                this.intelligence += element.intelligence;
-                this.wisdom += element.wisdom;
-                this.charisma += element.charisma;
-
-            })
+        if (this.itemIDs.length>0){
+            this.strength += itmStr;
+            this.dexterity += itmDex;
+            this.constitution += itmCon;
+            this.intelligence += itmInt;
+            this.wisdom += itmWis;
+            this.charisma += itmCha;
         }
         console.log(this);
     };
-    public addItem(name: string, stat?: string, quantity?: number) {
+    public addItem(existance : boolean , name: string, stat?: string, quantity?, itemToLoad? : Item) {
+        let item : Item;
         if (quantity && quantity !=0){
-            console.log(`Creating calling class item to create item with ${stat} of ${quantity}`)
-            this.items.push(new Item(name, stat, Math.abs(quantity)));
         } else {
-            console.log(`Creating calling class item to create item with ${stat} of 1`)
-            this.items.push(new Item(name, stat, 1));
+            quantity = 1;
         }
-        let element = this.items[this.items.length-1];
+        if(existance === false){
+            item = new Item(name, stat, quantity);
+            console.log(`Creating calling class item to create item with ${stat} of ${quantity}`)
+        } else {
+            item = itemToLoad;
+        }
+        let element = item;
         this.strength += element.strength;
         this.dexterity += element.dexterity;
         this.constitution += element.constitution;
         this.intelligence += element.intelligence;
         this.wisdom += element.wisdom;
         this.charisma += element.charisma;
-        return this.items[this.items.length-1];
+        this.itemIDs.push(item.name);
+        return item;
     };
-    public deleteItem(inputName){
-        let itemToDelIndex = this.items.map(x => x.name).indexOf(inputName)
+    public deleteItem(itemObject : Item){
+        let itemToDelIndex = this.itemIDs.indexOf(itemObject.name);
         if (itemToDelIndex != -1){
-            let element = this.items[itemToDelIndex];
+            let element = itemObject;
             this.strength -= element.strength;
             this.dexterity -= element.dexterity;
             this.constitution -= element.constitution;
             this.intelligence -= element.intelligence;
             this.wisdom -= element.wisdom;
             this.charisma -= element.charisma;
-            this.items.splice(itemToDelIndex, 1);
-            console.log(`${this.name}'s item ${inputName} has been deleted`);
+            this.itemIDs.splice(itemToDelIndex, 1);
+            console.log(`${this.name}'s item ${itemObject.name} has been deleted`);
         } else {
-            console.log(`${this.name}'s item under name ${inputName} has not been found`);
+            console.log(`${this.name}'s item under name ${itemObject.name} has not been found`);
         }
 
         
     }
     public listItems() {
-        if (this.items.length === 0){
+        if (this.itemIDs.length === 0){
             console.log("CHARACTER HAS NO ITEMS, USE ADDITEM TO ADD AN ITEM.");
         } else{
-            console.log(this.items);
+            console.log(this.itemIDs);
         }
         
     }
@@ -140,6 +143,6 @@ export default class Character {
         this.intelligence = char.intelligence;
         this.wisdom = char.wisdom;
         this.charisma = char.charisma;
-        this.items = char.items;
+        this.itemIDs = char.itemIDs;
     }
 };
