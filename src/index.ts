@@ -1,9 +1,88 @@
-//import fs from 'fs';
-//import path from 'path';
 import readline from 'readline';
+import express from 'express';
 import Player from './player';
 import Character from './character';
 import Item from './item';
+/*
+// GET /player/:id
+// GET /player
+// PATCH /player/:id
+// POST /player
+// DELETE /player/:id
+// GET /player/:id/character
+// GET /player/:playerId/character/:charId
+// POST /player/:id/character
+// PATCH /player/:playerId/character/:charId
+*/
+
+  //expressa
+  const app = express()
+  const port = 3000
+  const bodyParser = require('body-parser');
+  app.use(bodyParser.urlencoded({ extended: false }));
+  app.use(bodyParser.json());
+
+  app.listen(port, () => {
+   // console.log(`Example app listening on port ${port}`)
+  })
+ 
+  // Player reqs
+  app.get('/player', async (req, res) => {
+    const playerList = await listPlayers();
+    res.send(playerList);
+   return;
+  })
+
+  app.get('/player/:id', async (req, res)  => {
+    res.send(await loadObject(playersCollection,req.params.id));
+    return;
+  });
+
+  app.post('/player', async (req, res) =>{
+    const newPlayer : Player = req.body;
+    await createObject(playersCollection, newPlayer);
+    res.send("created new player " + newPlayer.name);
+    return;
+  })
+  app.patch('/player/:id', async (req, res) =>{
+    let playerObject : Player = req.body;
+    console.log(playerObject);
+    await updatePlayerName(playersCollection, playerObject, req.params['id']);
+    res.send(`player updated`);
+    return;
+  });
+  app.delete('/player/:id',(req, res) =>{
+    deleteObject(playersCollection,req.params.id);
+    res.send(`deleted player ${req.params.id}`);
+    return;
+  })
+  // Character reqs
+  app.get('/player/:id/character', async (req, res) => {
+    let result = await listCharacters(req.params['id']);
+    res.send(result);
+    return result;
+   })
+  app.get('/player/:playerId/character/:charId', async (req, res) => {
+    res.send(await loadObject(charactersCollection, req.params.charId));
+    return;
+  })
+  app.post('/player/:id/character', async (req, res) => {
+    let newCharacter : Character = req.body;
+    newCharacter.ownerID = req.params['id'];
+    await createObject(charactersCollection, newCharacter);
+    res.send("created new character: " + newCharacter.name);
+    return;
+  })
+  app.patch('/player/:playerId/character/:charId', (req, res) => {
+    let characterObject : Character = req.body;
+    characterObject.name = req.params['charId'];
+    updateObject(charactersCollection,characterObject);
+    res.send(`character updated`);
+    return;
+  })
+
+
+
 //mongo
 const { MongoClient } = require('mongodb');
 const client = new MongoClient("mongodb+srv://Velmarshal:pepsi@cluster0.xjn0f.mongodb.net/myFirstDatabase?retryWrites=true&w=majority");
@@ -12,44 +91,45 @@ const playersCollection = "playersTest";
 const itemsCollection = "itemsTest";
 const databaseName = "velmarshal";
 client.connect();
-//createObject (client, playersCollection, "Prcko")
 
 //Player login/start
-let player;
+let playerVarID;
+let loadedCharacter : Character;
 const inquirer = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
-let loadedCharacter : Character;
-
-
 inquirer.on("close", function() {
     process.exit(0);
   });
 
-
 function exit() : void {
     inquirer.close();
   };
+inquirer.question('player id: ', (playerInput) => {
+   start(playerInput);
+});
 
-  //console commands
-  
- inquirer.question('player id: ', async (input) => {
+async function start(input) {
+  if (input){
     if (await checkObject(playersCollection, input)===true){
-      console.log(`Player with ID ${input} found. LOADING...`)
-      player = input;
+        console.log(`Player with ID ${input} found. LOADING...`)
+        playerVarID = input;
+        console.log("loading player menu")
+        playerMenu();
+        return;
     } else {
-      console.log(`Player with ID ${input} not found. CREATING NEW PROFILE...`)
-      player = input;
-      let playerObject = new Player(input);
-      createObject(playersCollection, playerObject);
+        console.log(`Player with ID ${input} not found. CREATING NEW PROFILE...`)
+        playerVarID = input;
+        let playerObject = new Player(input);
+        createObject(playersCollection, playerObject);
+        playerMenu();
+        return;
     }
+  }
+}
 
-    
-    playerMenu();
-  })
-  
-
+//console commands
 function playerMenu () : void {
   inquirer.question(`Available commands: NEW, LOAD(ID), DELETE(ID), LIST, SAVE: `, async (input : string) => {
     let playerInput = input.toLowerCase().split(" ");
@@ -57,7 +137,7 @@ function playerMenu () : void {
       case "new":
         if (playerInput.length >1){
           if (await checkObject(charactersCollection, playerInput [1])===false){
-            loadedCharacter = new Character(playerInput[1], player);
+            loadedCharacter = new Character(playerInput[1], playerVarID);
             createObject (charactersCollection, loadedCharacter);
             characterMenu(loadedCharacter);
           } else {
@@ -73,7 +153,7 @@ function playerMenu () : void {
         if (playerInput.length >1){
           if (await checkObject(charactersCollection, playerInput [1])===true){
             let file = await loadObject(charactersCollection, playerInput[1]);
-            loadedCharacter = new Character(playerInput[1], player);
+            loadedCharacter = new Character(playerInput[1], playerVarID);
             loadedCharacter.loadCharacterFromJSON(file);
             characterMenu(loadedCharacter);
           } else {
@@ -86,8 +166,9 @@ function playerMenu () : void {
       //
       case "delete":
         if (playerInput.length >1){
-          if (await checkObject(charactersCollection, input)===true){
-            player.deleteCharacter(playerInput[1]);
+          if (await checkObject(charactersCollection, playerInput [1])===true){
+            await deleteObject(charactersCollection, playerInput[1]);
+            console.log(`CHARACTER ${playerInput[1]} DELETED`);
           } else {
             console.log("CHARACTER DOES NOT EXIST");
           }
@@ -97,12 +178,12 @@ function playerMenu () : void {
       break;
       //
       case "list":
-        listCharacters(player);
+        console.log(await listCharacters(playerVarID));
       break;
       //
       case "save":
         saveObject(charactersCollection, loadedCharacter);
-        console.log(`Player ${player} has been saved`);
+        console.log(`Player ${playerVarID} has been saved`);
         playerMenu();
       break;
       //
@@ -170,6 +251,7 @@ function characterMenu (objectLoadedCharacter){
       break;
       //
       case "list":
+        console.log(loadedCharacter);
         console.log(loadedCharacter.listItems());
       break;
       //
@@ -192,7 +274,7 @@ async function createObject(collection, object){
 
   const result = await client.db(databaseName).collection(collection).insertOne(object);
 
-  console.log(`New object created with the following id: ${result.insertedId} in ${collection} collection`);
+  //console.log(`New object created with the following id: ${result.insertedId} in ${collection} collection`);
 
 }
 
@@ -200,33 +282,60 @@ async function checkObject(collection, name){
 
   const result = await client.db(databaseName).collection(collection).countDocuments({"name" : name}, { limit: 1 });
   if (result < 1){
-    console.log(`Object with id not found`);
+    //console.log(`Object with id not found`);
     let returnBool = false;
     return returnBool;
   } else {
-    console.log(`Object with id found: ${name} in ${collection} collection`);
+    //console.log(`Object with id found: ${name} in ${collection} collection`);
     let returnBool = true;
     return returnBool;
   }
 
 };
 async function listCharacters(playerID){
-  const result = await client.db(databaseName).collection(charactersCollection).find({"ownerID" : playerID}).toArray(function(err, result){
-    if (err) throw err;
-    console.log(result);
-    })
+  const resultL = await client.db(databaseName).collection(charactersCollection).find({"ownerID" : playerID}).toArray()
+  let resultLOut = [];
+  function separateNames(item){
+    resultLOut.push(item.name);
+  };
+  resultL.forEach(separateNames);
+
+  return resultLOut;
 };
 async function loadObject(collection, name){
 
   const result = await client.db(databaseName).collection(collection).findOne({"name" : name});
-  console.log(result);
+  //console.log(result);
   return result;
 
 };
 async function saveObject(collection, object : Character){
-  console.log(object);
+  //console.log(object);
   const result = await client.db(databaseName).collection(collection).replaceOne({"name" : object.name}, object);
 };
+async function listPlayers(){
+  const resultL = await client.db(databaseName).collection(playersCollection).find().toArray()
+  let resultLOut = [];
+  function separateNames(item){
+    resultLOut.push(item.name);
+  };
+  resultL.forEach(separateNames);
+  //console.log(`logged player list ${resultL}`);
+  return resultLOut;
+};
+async function deleteObject(collection, name) {
+  const result = await client.db(databaseName).collection(collection).deleteOne({"name" : name});
+  console.log(`${name} has been deleted from ${collection}`);
+  return ("object has been deleted");
+}
 
-
-
+async function updateObject(collection, object){
+  console.log(object);
+  const result = await client.db(databaseName).collection(collection).updateOne({"name" : object.name},{$set: object});
+  return ("object has been updated");
+};
+async function updatePlayerName(collection, object, playerNameToUpdate : string){
+  console.log(object);
+  const result = await client.db(databaseName).collection(collection).updateOne({"name" : playerNameToUpdate},{$set: object});
+  return ("object has been updated");
+};
