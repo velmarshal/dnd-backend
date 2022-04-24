@@ -18,7 +18,7 @@
 import Item from './item';
 export default class Character { 
     public name : string;
-    public ownerID : string;
+    public ownerID : any;
     private class : string;
     private strength : number;
     private dexterity : number;

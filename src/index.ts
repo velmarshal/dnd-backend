@@ -3,29 +3,159 @@ import express from 'express';
 import Player from './player';
 import Character from './character';
 import Item from './item';
+import {ApolloServer} from 'apollo-server-express';
+import {ApolloServerPluginDrainHttpServer} from 'apollo-server-core';
+import http from 'http';
 /*
-// GET /player/:id
-// GET /player
-// PATCH /player/:id
-// POST /player
-// DELETE /player/:id
-// GET /player/:id/character
-// GET /player/:playerId/character/:charId
-// POST /player/:id/character
-// PATCH /player/:playerId/character/:charId
+prebaci da se poziva na id a ne name
+middleware
+apollo graphql
 */
+//mongo
+const { MongoClient } = require('mongodb');
+const client = new MongoClient("mongodb+srv://Velmarshal:pepsi@cluster0.xjn0f.mongodb.net/myFirstDatabase?retryWrites=true&w=majority");
+const charactersCollection = "charactersTest";
+const playersCollection = "playersTest";
+const itemsCollection = "itemsTest";
+const databaseName = "velmarshal";
+client.connect();
 
-  //expressa
-  const app = express()
-  const port = 3000
-  const bodyParser = require('body-parser');
-  app.use(bodyParser.urlencoded({ extended: false }));
-  app.use(bodyParser.json());
+//expressa
+const app = express();
+const port = 3000
+const bodyParser = require('body-parser');
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+// app.listen(port, () => {})
+const schema = require('./schema');
 
-  app.listen(port, () => {
-   // console.log(`Example app listening on port ${port}`)
-  })
- 
+// Resolvers for graphql
+const resolvers = {
+    Query: {
+      async getPlayer (_, { playerId }) {
+        return client.db(databaseName).collection(playersCollection).findOne({"_id" : playerId});
+      },
+      async getCharacter (_, { characterId }) {
+        return client.db(databaseName).collection(charactersCollection).findOne({"_id" : characterId});
+      },
+      async listCharactersOwnedByPlayer (_, { playerId }) {
+        return client.db(databaseName).collection(charactersCollection).find({"ownerID" : playerId});
+      },
+
+    Mutation: {
+      async addCharacter (_, { characterObject }) {
+        try {
+          const result = await createObject(charactersCollection, characterObject);
+          return {
+            code: 200,
+            success: true,
+            message: "Successfully added character.",
+            character: result
+          };
+        }
+        catch {
+          return {
+            code: 400,
+            success: false,
+            message: "Failed adding the character",
+          };
+        };
+      },
+      async addPlayer (_, { playerObject }) {
+        try {
+          const result = createObject(playersCollection, playerObject);
+          return {
+            code: 200,
+            success: true,
+            message: "Successfully added player.",
+            player: result
+          };
+        }
+        catch {
+          return {
+            code: 400,
+            success: false,
+            message: "Failed adding the player.",
+          };
+        };
+      },
+      async changePlayer (_, { playerObject }) {
+        try {
+          client.db(databaseName).collection(playersCollection).updateOne({"_id" : playerObject._id},{$set: playerObject});
+          return {
+            code: 200,
+            success: true,
+            message: "Successfully altered player."
+          };
+        }
+        catch {
+          return {
+            code: 400,
+            success: false,
+            message: "Failed altering the player.",
+          };
+        };
+      },
+      async changeCharacter (_, { characterObject }) {
+        try {
+          client.db(databaseName).collection(playersCollection).updateOne({"_id" : characterObject._id},{$set: characterObject});
+          return {
+            code: 200,
+            success: true,
+            message: "Successfully altered character."
+          };
+        }
+        catch {
+          return {
+            code: 400,
+            success: false,
+            message: "Failed altering the character.",
+          };
+        };
+      },
+      async deletePlayer (_, { playerId }) {
+        try {
+          client.db(databaseName).collection(playersCollection).deleteOne({"_id" : playerId});
+          client.db(databaseName).collection(charactersCollection).delete({"ownerID" : playerId});
+          return {
+            code: 200,
+            success: true,
+            message: "Successfully deleted the player and their characters."
+          };
+        }
+        catch {
+          return {
+            code: 400,
+            success: false,
+            message: "Failed deleting the player.",
+          };
+        };
+      },
+    }
+    },
+  };
+//
+
+
+async function startApolloServer(typeDefs, resolvers) {
+  const httpServer = http.createServer(app);
+  const server = new ApolloServer({
+    typeDefs,
+    resolvers,
+    plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
+  });
+
+  await server.start();
+  console.log("server starting");
+  server.applyMiddleware({ app });
+
+  await new Promise(resolve => httpServer.listen({ port: port }));
+
+  console.log(`Server ready at http://localhost:${port}${server.graphqlPath}`);
+}
+startApolloServer(schema, resolvers);
+//
+
   // Player reqs
   app.get('/player', async (req, res) => {
     const playerList = await listPlayers();
@@ -81,16 +211,6 @@ import Item from './item';
     return;
   })
 
-
-
-//mongo
-const { MongoClient } = require('mongodb');
-const client = new MongoClient("mongodb+srv://Velmarshal:pepsi@cluster0.xjn0f.mongodb.net/myFirstDatabase?retryWrites=true&w=majority");
-const charactersCollection = "charactersTest";
-const playersCollection = "playersTest";
-const itemsCollection = "itemsTest";
-const databaseName = "velmarshal";
-client.connect();
 
 //Player login/start
 let playerVarID;
@@ -273,7 +393,7 @@ function characterMenu (objectLoadedCharacter){
 async function createObject(collection, object){
 
   const result = await client.db(databaseName).collection(collection).insertOne(object);
-
+  return result;
   //console.log(`New object created with the following id: ${result.insertedId} in ${collection} collection`);
 
 }
@@ -290,8 +410,20 @@ async function checkObject(collection, name){
     let returnBool = true;
     return returnBool;
   }
-
 };
+
+async function checkObjectById(collection, id){
+
+  const result = await client.db(databaseName).collection(collection).countDocuments({"_id" : id}, { limit: 1 });
+  if (result < 1){
+    let returnBool = false;
+    return returnBool;
+  } else {
+    let returnBool = true;
+    return returnBool;
+  }
+};
+
 async function listCharacters(playerID){
   const resultL = await client.db(databaseName).collection(charactersCollection).find({"ownerID" : playerID}).toArray()
   let resultLOut = [];
@@ -311,7 +443,7 @@ async function loadObject(collection, name){
 };
 async function saveObject(collection, object : Character){
   //console.log(object);
-  const result = await client.db(databaseName).collection(collection).replaceOne({"name" : object.name}, object);
+  const result = await client.db(databaseName).collection(collection).updateOne({"name" : object.name}, object);
 };
 async function listPlayers(){
   const resultL = await client.db(databaseName).collection(playersCollection).find().toArray()
@@ -330,12 +462,10 @@ async function deleteObject(collection, name) {
 }
 
 async function updateObject(collection, object){
-  console.log(object);
   const result = await client.db(databaseName).collection(collection).updateOne({"name" : object.name},{$set: object});
   return ("object has been updated");
 };
 async function updatePlayerName(collection, object, playerNameToUpdate : string){
-  console.log(object);
   const result = await client.db(databaseName).collection(collection).updateOne({"name" : playerNameToUpdate},{$set: object});
   return ("object has been updated");
 };
