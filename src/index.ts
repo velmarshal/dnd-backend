@@ -40,8 +40,8 @@ const resolvers = {
       },
       async listCharactersOwnedByPlayer (_, { playerId }) {
         return client.db(databaseName).collection(charactersCollection).find({"ownerID" : playerId});
-      },
-
+      }
+    },
     Mutation: {
       async addCharacter (_, { characterObject }) {
         try {
@@ -132,7 +132,6 @@ const resolvers = {
         };
       },
     }
-    },
   };
 //
 
