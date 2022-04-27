@@ -1,19 +1,10 @@
-const { gql } = require('apollo-server-express');
+import { gql } from 'apollo-server-express';
 
-const typeDefs = gql`
-
-input  PlayerInput {
-    playerId: ID!
-}
-type Player {
-    playerId: ID!
-    name: String!
-}
+export const typeDefs = gql`
 
 type Character {
-    characterId: String!
+    id: ID!
     name: String!
-    ownerID: Player!
     strength: Int!
     dexterity: Int!
     constitution: Int!
@@ -21,10 +12,17 @@ type Character {
     wisdom: Int!
     charisma: Int!
     items: [Item]
+    roll: Int!
+}
+
+type Player {
+    id: ID!
+    name: String!
+    characters: [Character]
 }
 
 type Item {
-    itemId: ID!
+    id: ID!
     name: String!
     strength: Int
     dexterity: Int
@@ -33,65 +31,54 @@ type Item {
     wisdom: Int
     charisma: Int
 }
-type Mutation {
 
-    addCharacter(
-        name: String!,
-        ownerId: PlayerInput!,
-        strength: Int!,
-        dexterity: Int!,
-        constitution: Int!,
-        intelligence: Int!,
-        wisdom: Int!,
-        charisma: Int!,
-    ) : Character
-
-    changeCharacter(
-        characterId: ID!,
-        name: String,
-        ownerId: PlayerInput,
-        strength: Int,
-        dexterity: Int,
-        constitution: Int,
-        intelligence: Int,
-        wisdom: Int,
-        charisma: Int,
-    ) : Character
-
-    addPlayer(
-        name: String!
-    ) : Player
-
-    changePlayer(
-        name: String!
-    ) : Player
-
-    deletePlayer(
-        playerId: ID!
-    ) : String
+type CreateCharacterResponse implements MutationResponse {
+    code: String
+    success: Boolean!
+    message: String
+    character: Character
 }
+
+type CreatePlayerResponse implements MutationResponse {
+    code: String
+    success: Boolean!
+    message: String
+    player: Player
+}
+
+type Mutation {
+    createCharacter(playerID: ID!, name: String!) : CreateCharacterResponse!
+    createPlayer(name: String!): CreatePlayerResponse!
+
+    # changeCharacter(
+    #     characterId: ID!,
+    #     name: String,
+    #     ownerId: PlayerInput,
+    #     strength: Int,
+    #     dexterity: Int,
+    #     constitution: Int,
+    #     intelligence: Int,
+    #     wisdom: Int,
+    #     charisma: Int,
+    # ) : Character
+
+    # changePlayer(
+    #     name: String!
+    # ) : Player
+
+    # deletePlayer(
+    #     playerId: ID!
+    # ) : String
+}
+
 type Query {
-    getPlayer(
-       playerId: ID!
-    ) : Player
-
-    getCharacter(
-        characterId: ID!
-    ) : Character
-
-    listCharactersOwnedByPlayer(
-        playerId: ID!
-    ) : Character
+    getPlayer(playerID: ID!): Player
+    getCharacter(characterID: ID!): Character
 }
 
 interface MutationResponse {
-
-  code: String!
-
+  code: String
   success: Boolean!
-
-  message: String!
-
+  message: String
 }
 `;
-module.exports = typeDefs;
