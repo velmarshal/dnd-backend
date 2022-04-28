@@ -1,7 +1,40 @@
 import { gql } from 'apollo-server-express';
 
 export const typeDefs = gql`
+enum  Die {
+    D4,
+    D6,
+    D8,
+    D10,
+    D12,
+    D20,
+    D100,
+}
 
+input ChangePlayerInput{
+    name: String
+    characters: [ID]
+}
+input ChangeCharacterInput{
+    name: String
+    strength: Int
+    dexterity: Int
+    constitution: Int
+    intelligence: Int
+    wisdom: Int
+    charisma: Int
+    items: [ID]
+    roll: Int
+}
+input ChangeItemInput{
+    name: String
+    strength: Int
+    dexterity: Int
+    constitution: Int
+    intelligence: Int
+    wisdom: Int
+    charisma: Int
+}
 type Character {
     id: ID!
     name: String!
@@ -12,7 +45,7 @@ type Character {
     wisdom: Int!
     charisma: Int!
     items: [Item]
-    roll: Int!
+    roll (die:Die): Int!
 }
 
 type Player {
@@ -32,6 +65,52 @@ type Item {
     charisma: Int
 }
 
+type Mutation {
+    createCharacter (playerID: ID!, name: String!)                          : CreateCharacterResponse!
+    createPlayer    (name: String!)                                         : CreatePlayerResponse!
+    createItem      (name: String! )                                        : CreateItemResponse!
+    deletePlayer    (playerID: ID!)                                         : DeletionResponse!
+    deleteCharacter (characterID: ID!)                                      : DeletionResponse!
+    deleteItem      (itemID: ID!)                                           : DeletionResponse!
+    changePlayer    (playerID: ID!, playerData: ChangePlayerInput)          : PlayerAlterationResponse!
+    changeCharacter (characterID: ID!, characterData: ChangeCharacterInput) : CharacterAlterationResponse!
+    changeItem      (itemID: ID!, itemData: ChangeItemInput)                : ItemAlterationResponse!
+}
+    # FchangeCharacter(
+    #     characterId: ID!,
+    #     name: String,
+    #     ownerId: PlayerInput,
+    #     strength: Int,
+    #     dexterity: Int,
+    #     constitution: Int,
+    #     intelligence: Int,
+    #     wisdom: Int,
+    #     charisma: Int,
+    # ) : Character
+    #
+    #FdeleteCharacter
+    #FdeleteItem
+
+    # FchangePlayer(
+    #     name: String!
+    # ) : Player
+
+    # FdeletePlayer(
+    #     playerId: ID!
+    # ) : String
+
+type Query {
+    getPlayer(playerID: ID!): Player
+    getCharacter(characterID: ID!): Character
+    getItem(itemID: ID!): Item
+}
+
+interface MutationResponse {
+  code: String
+  success: Boolean!
+  message: String
+}
+
 type CreateCharacterResponse implements MutationResponse {
     code: String
     success: Boolean!
@@ -45,40 +124,34 @@ type CreatePlayerResponse implements MutationResponse {
     message: String
     player: Player
 }
-
-type Mutation {
-    createCharacter(playerID: ID!, name: String!) : CreateCharacterResponse!
-    createPlayer(name: String!): CreatePlayerResponse!
-
-    # changeCharacter(
-    #     characterId: ID!,
-    #     name: String,
-    #     ownerId: PlayerInput,
-    #     strength: Int,
-    #     dexterity: Int,
-    #     constitution: Int,
-    #     intelligence: Int,
-    #     wisdom: Int,
-    #     charisma: Int,
-    # ) : Character
-
-    # changePlayer(
-    #     name: String!
-    # ) : Player
-
-    # deletePlayer(
-    #     playerId: ID!
-    # ) : String
+type CreateItemResponse implements MutationResponse {
+    code: String
+    success: Boolean!
+    message: String
+    item: Item
+}
+type DeletionResponse implements MutationResponse {
+    code: String
+    success: Boolean!
+    message: String 
 }
 
-type Query {
-    getPlayer(playerID: ID!): Player
-    getCharacter(characterID: ID!): Character
+type PlayerAlterationResponse implements MutationResponse {
+    code: String
+    success: Boolean!
+    message: String
+    player: Player 
 }
-
-interface MutationResponse {
-  code: String
-  success: Boolean!
-  message: String
+type CharacterAlterationResponse implements MutationResponse {
+    code: String
+    success: Boolean!
+    message: String
+    character: Character 
+}
+type ItemAlterationResponse implements MutationResponse {
+    code: String
+    success: Boolean!
+    message: String
+    item: Item 
 }
 `;

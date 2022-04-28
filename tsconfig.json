@@ -17,5 +17,5 @@
         "esModuleInterop": true,
         "skipDefaultLibCheck": true
     },
-    "exclude": ["node_modules", "tmp"]
+    "exclude": ["node_modules", "tmp", "old"]
 }
